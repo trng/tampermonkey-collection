@@ -36,9 +36,14 @@ class PlayersList {
         this.rowBgColor = rbgc;
     }
 
-    get actualListLength() { return this.playersListNode.querySelectorAll(':scope > div').length; }
-    playerExists(player_str) { return Array.from(this.playersListNode.querySelectorAll(':scope > div')).some(playerDiv => playerDiv.innerTEXT.includes(player_str)) }
-    playerDiv(playerNumWithName) {return Array.from(this.playersListNode.querySelectorAll(':scope > div')).find(element => element.innerText.trim() === playerNumWithName);}
+    get actualListLength() { return this.playersListNode.querySelectorAll(':scope > div').length }
+    playerExists(player_str) {
+        return Array.from(this.playersListNode.querySelectorAll(':scope > div')).some(playerDiv => {
+            console.log(player_str, playerDiv.innerText);
+            return playerDiv.innerText.includes(player_str);
+                                                                                                   } )
+                             }
+    playerDiv(playerNumWithName) { return Array.from(this.playersListNode.querySelectorAll(':scope > div')).find( element => element.innerText.trim() === playerNumWithName ) }
 }
 
 const players_lists = []; // 1 - true: starter5, 0 - false: benchPlayers
@@ -68,7 +73,6 @@ const observerConfigForPlayersList = {
 
 const observerForPlayersList = new MutationObserver(observerCallbackPlayersListChanged); // Create and start observing the parent node
 
-console.log(players_lists);
 players_lists.forEach((playersListObj) => {
     // console.log(playersListObj);
     observerForPlayersList.observe(playersListObj.playersListNode, observerConfigForPlayersList);
@@ -108,9 +112,6 @@ players_lists.forEach((playersListObj) => {
 
     playersListObj.playersListNode.addEventListener('drop', (event) => {
         event.preventDefault(); // Prevent default action
-        // const isValid = checkCondition(); // Replace with your condition
-        console.log('//+//', playersListObj.playersListNode, '//-//');
-
         draggedItem.__data.style.backgroundColor = playersListObj.rowBgColor;
     });
 }); // define all event listeners
