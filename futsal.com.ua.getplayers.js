@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Futsal Lineup builder (json)
 // @namespace    http://tampermonkey.net/
-// @version      0.6
+// @version      0.65
 // @description  Intercept a click and log the HTML code at the clicked location
 // @author       You
 // @match        https://futsal.com.ua/%D0%BA%D0%BE%D0%BC%D0%B0%D0%BD%D0%B4%D0%B0/*
@@ -35,9 +35,14 @@ function exportJSON(home_guest) {
     if (players_lists[0].playersListNode.children.length < players_lists[0].playersListMaxLength && !confirm(`Bench less than ${players_lists[0].playersListMaxLength}. Continue?`) )
         { return; }
 
-    let starter5 = players_lists[1].getPlayersListObject();
-    let bench_players = players_lists[0].getPlayersListObject();
+    let team_name = new_div.querySelector('#teamInjectedId').textContent.trim();
+    let starter5 = players_lists[1].getPlayersListObject(team_name);
+    let bench_players = players_lists[0].getPlayersListObject(team_name);
     starter5["SubsPlayers.Text"] = bench_players; // "merge" starter5 and bench players lists
+    starter5["Team.Text"] = team_name; // add team name
+    starter5["Sity.Text"] = document.querySelector('div.bs-desc div.sp-section-content.sp-section-content-content div.sp-post-content p:nth-child(2)').textContent.trim();
+    starter5["CoachName.Text"] = new_div.querySelector('#coachInjectedId').textContent.trim(); // add team name
+
     let blob = new Blob([JSON.stringify([starter5], null, 2)], { type: "text/plain" });
     let link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
@@ -46,7 +51,8 @@ function exportJSON(home_guest) {
 }
 
 const html_string = `<div style="position: fixed; top: 0; right: 0; background-color: rgba(55, 55, 255, 0.75); color: white; padding: 5px; z-index: 10000; font-weight: bold; border: 1px solid  rgb(55, 55, 255);">
-  <div>&nbsp;</div>
+  <div><span style="display:inline-block;width:5em;font-size:0.75em;color:lightgrey;">Команда</span><span id="teamInjectedId">ERROR</span></div>
+  <div><span style="display:inline-block;width:5em;font-size:0.75em;color:lightgrey;">Тренер</span><span id="coachInjectedId">ERROR</span></div>
   <div><button id="exportHomeId" style="padding:0.2em;">Export Home</button>&nbsp;&nbsp;<button id="exportGuestId" style="padding:0.2em;">Export Guest</button></div>
   <p></p>
   <div>
@@ -118,13 +124,15 @@ class PlayersList {
         }
     }
 
-    getPlayersListObject() {
+    getPlayersListObject(team_name) {
       const data = Array.from(this.playersListNode.children); // Get child divs
+      const player_photo_folder = `C:\\custom\\footsal\\Photo_players\\`;
       let ret_val = {};
       if (this.playersListMaxLength == 5) { // starter5 or bench players?
         ret_val = data.reduce((obj, child, index) => {
             obj[`Name_${index + 1}.Text`] = child.dataset.playerName;
             obj[`Num_${index + 1}.Text`] = child.dataset.playerNum;
+            obj[`Photo_${index + 1}.Source`] = player_photo_folder + team_name + '\\' + child.dataset.playerNum + ' ' + child.dataset.playerName + '.png';
             return obj;
         }, {});
       } else {
@@ -145,7 +153,10 @@ players_lists[0] = new PlayersList(bench_players_injected_node, 9, 'lightpink');
     'use strict';
     new_div.querySelector('#exportHomeId').onclick = function() { exportJSON("Home") };
     new_div.querySelector('#exportGuestId').onclick = function() { exportJSON("Guest") };
-    new_div.querySelector('div').innerHTML = document.title.replace('- Асоціація футзалу України', '');
+    new_div.querySelector('#teamInjectedId').innerHTML = document.title.replace('- Асоціація футзалу України', '');
+    if ( document.querySelector('h4.sp-staff-name a') )
+        { new_div.querySelector('#coachInjectedId').innerHTML = document.querySelector('h4.sp-staff-name a').childNodes[1].textContent.trim(); }
+
 
     // main listener (click on document)
     document.addEventListener('click', function(event) {
